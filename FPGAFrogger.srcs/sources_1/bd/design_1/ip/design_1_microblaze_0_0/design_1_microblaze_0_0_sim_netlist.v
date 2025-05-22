@@ -1,10 +1,10 @@
 // Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 // --------------------------------------------------------------------------------
 // Tool Version: Vivado v.2018.2 (win64) Build 2258646 Thu Jun 14 20:03:12 MDT 2018
-// Date        : Tue May 13 02:13:11 2025
+// Date        : Thu May 22 15:45:55 2025
 // Host        : Christopher-Desktop running 64-bit major release  (build 9200)
-// Command     : write_verilog -force -mode funcsim -rename_top design_1_microblaze_0_0 -prefix
-//               design_1_microblaze_0_0_ design_1_microblaze_0_0_sim_netlist.v
+// Command     : write_verilog -force -mode funcsim
+//               C:/Vivado/FPGAFrogger/FPGAFrogger.srcs/sources_1/bd/design_1/ip/design_1_microblaze_0_0/design_1_microblaze_0_0_sim_netlist.v
 // Design      : design_1_microblaze_0_0
 // Purpose     : This verilog netlist is a functional simulation representation of the design and should not be modified
 //               or synthesized. This netlist cannot be used for SDF annotated simulation.
@@ -67,7 +67,7 @@ module design_1_microblaze_0_0
     Dbg_Update,
     Debug_Rst,
     Dbg_Disable);
-  (* x_interface_info = "xilinx.com:signal:clock:1.0 CLK.CLK CLK" *) (* x_interface_parameter = "XIL_INTERFACENAME CLK.CLK, ASSOCIATED_BUSIF M0_AXIS:S0_AXIS:M1_AXIS:S1_AXIS:M2_AXIS:S2_AXIS:M3_AXIS:S3_AXIS:M4_AXIS:S4_AXIS:M5_AXIS:S5_AXIS:M6_AXIS:S6_AXIS:M7_AXIS:S7_AXIS:M8_AXIS:S8_AXIS:M9_AXIS:S9_AXIS:M10_AXIS:S10_AXIS:M11_AXIS:S11_AXIS:M12_AXIS:S12_AXIS:M13_AXIS:S13_AXIS:M14_AXIS:S14_AXIS:M15_AXIS:S15_AXIS:DLMB:ILMB:M_AXI_DP:M_AXI_IP:M_AXI_DC:M_AXI_IC:M_ACE_DC:M_ACE_IC:MON_DLMB:MON_ILMB:MON_AXI_DP:MON_AXI_IP:MON_AXI_DC:MON_AXI_IC:MON_ACE_DC:MON_ACE_IC, ASSOCIATED_RESET Reset, FREQ_HZ 100000000, PHASE 0.0, CLK_DOMAIN /clk_wiz_0_clk_out1" *) input Clk;
+  (* x_interface_info = "xilinx.com:signal:clock:1.0 CLK.CLK CLK" *) (* x_interface_parameter = "XIL_INTERFACENAME CLK.CLK, ASSOCIATED_BUSIF M0_AXIS:S0_AXIS:M1_AXIS:S1_AXIS:M2_AXIS:S2_AXIS:M3_AXIS:S3_AXIS:M4_AXIS:S4_AXIS:M5_AXIS:S5_AXIS:M6_AXIS:S6_AXIS:M7_AXIS:S7_AXIS:M8_AXIS:S8_AXIS:M9_AXIS:S9_AXIS:M10_AXIS:S10_AXIS:M11_AXIS:S11_AXIS:M12_AXIS:S12_AXIS:M13_AXIS:S13_AXIS:M14_AXIS:S14_AXIS:M15_AXIS:S15_AXIS:DLMB:ILMB:M_AXI_DP:M_AXI_IP:M_AXI_DC:M_AXI_IC:M_ACE_DC:M_ACE_IC:MON_DLMB:MON_ILMB:MON_AXI_DP:MON_AXI_IP:MON_AXI_DC:MON_AXI_IC:MON_ACE_DC:MON_ACE_IC, ASSOCIATED_RESET Reset, FREQ_HZ 75000000, PHASE 0.0, CLK_DOMAIN /clk_wiz_0_clk_out1" *) input Clk;
   (* x_interface_info = "xilinx.com:signal:reset:1.0 RST.RESET RST" *) (* x_interface_parameter = "XIL_INTERFACENAME RST.RESET, POLARITY ACTIVE_HIGH, TYPE PROCESSOR" *) input Reset;
   (* x_interface_info = "xilinx.com:interface:mbinterrupt:1.0 INTERRUPT INTERRUPT" *) (* x_interface_parameter = "XIL_INTERFACENAME INTERRUPT, SENSITIVITY LEVEL_HIGH, LOW_LATENCY 0" *) input Interrupt;
   (* x_interface_info = "xilinx.com:interface:mbinterrupt:1.0 INTERRUPT ADDRESS" *) input [0:31]Interrupt_Address;
@@ -91,7 +91,7 @@ module design_1_microblaze_0_0
   (* x_interface_info = "xilinx.com:interface:lmb:1.0 DLMB CE" *) input DCE;
   (* x_interface_info = "xilinx.com:interface:lmb:1.0 DLMB UE" *) input DUE;
   (* x_interface_info = "xilinx.com:interface:lmb:1.0 DLMB BE" *) output [0:3]Byte_Enable;
-  (* x_interface_info = "xilinx.com:interface:aximm:1.0 M_AXI_DP AWADDR" *) (* x_interface_parameter = "XIL_INTERFACENAME M_AXI_DP, ID_WIDTH 0, READ_WRITE_MODE READ_WRITE, SUPPORTS_NARROW_BURST 0, HAS_BURST 0, DATA_WIDTH 32, ADDR_WIDTH 32, NUM_READ_OUTSTANDING 1, NUM_WRITE_OUTSTANDING 1, NUM_READ_THREADS 1, NUM_WRITE_THREADS 1, MAX_BURST_LENGTH 1, PROTOCOL AXI4LITE, FREQ_HZ 100000000, AWUSER_WIDTH 0, ARUSER_WIDTH 0, WUSER_WIDTH 0, RUSER_WIDTH 0, BUSER_WIDTH 0, HAS_LOCK 0, HAS_PROT 1, HAS_CACHE 0, HAS_QOS 0, HAS_REGION 0, HAS_WSTRB 1, HAS_BRESP 1, HAS_RRESP 1, PHASE 0.0, CLK_DOMAIN /clk_wiz_0_clk_out1, RUSER_BITS_PER_BYTE 0, WUSER_BITS_PER_BYTE 0" *) output [31:0]M_AXI_DP_AWADDR;
+  (* x_interface_info = "xilinx.com:interface:aximm:1.0 M_AXI_DP AWADDR" *) (* x_interface_parameter = "XIL_INTERFACENAME M_AXI_DP, ID_WIDTH 0, READ_WRITE_MODE READ_WRITE, SUPPORTS_NARROW_BURST 0, HAS_BURST 0, DATA_WIDTH 32, ADDR_WIDTH 32, NUM_READ_OUTSTANDING 1, NUM_WRITE_OUTSTANDING 1, NUM_READ_THREADS 1, NUM_WRITE_THREADS 1, MAX_BURST_LENGTH 1, PROTOCOL AXI4LITE, FREQ_HZ 75000000, AWUSER_WIDTH 0, ARUSER_WIDTH 0, WUSER_WIDTH 0, RUSER_WIDTH 0, BUSER_WIDTH 0, HAS_LOCK 0, HAS_PROT 1, HAS_CACHE 0, HAS_QOS 0, HAS_REGION 0, HAS_WSTRB 1, HAS_BRESP 1, HAS_RRESP 1, PHASE 0.0, CLK_DOMAIN /clk_wiz_0_clk_out1, RUSER_BITS_PER_BYTE 0, WUSER_BITS_PER_BYTE 0" *) output [31:0]M_AXI_DP_AWADDR;
   (* x_interface_info = "xilinx.com:interface:aximm:1.0 M_AXI_DP AWPROT" *) output [2:0]M_AXI_DP_AWPROT;
   (* x_interface_info = "xilinx.com:interface:aximm:1.0 M_AXI_DP AWVALID" *) output M_AXI_DP_AWVALID;
   (* x_interface_info = "xilinx.com:interface:aximm:1.0 M_AXI_DP AWREADY" *) input M_AXI_DP_AWREADY;
@@ -459,7 +459,7 @@ module design_1_microblaze_0_0
   (* C_FAMILY = "artix7" *) 
   (* C_FAULT_TOLERANT = "0" *) 
   (* C_FPU_EXCEPTION = "0" *) 
-  (* C_FREQ = "100000000" *) 
+  (* C_FREQ = "75000000" *) 
   (* C_FSL_EXCEPTION = "0" *) 
   (* C_FSL_LINKS = "0" *) 
   (* C_IADDR_SIZE = "32" *) 
@@ -1027,6 +1027,7 @@ module design_1_microblaze_0_0
         .Write_Strobe(Write_Strobe));
 endmodule
 
+(* ORIG_REF_NAME = "ALU" *) 
 module design_1_microblaze_0_0_ALU
    (\EX_Op3_reg[24] ,
     \Using_FPGA.Native ,
@@ -1903,6 +1904,7 @@ module design_1_microblaze_0_0_ALU
         .O(DI));
 endmodule
 
+(* ORIG_REF_NAME = "ALU_Bit" *) 
 module design_1_microblaze_0_0_ALU_Bit
    (EX_CarryOut,
     \Data_Addr[10] ,
@@ -4435,6 +4437,7 @@ module design_1_microblaze_0_0_ALU_Bit__parameterized2
         .lopt(lopt));
 endmodule
 
+(* ORIG_REF_NAME = "Byte_Doublet_Handle_gti" *) 
 module design_1_microblaze_0_0_Byte_Doublet_Handle_gti
    (wb_read_lsb_1_sel,
     wb_read_msb_doublet_sel,
@@ -4770,6 +4773,7 @@ module design_1_microblaze_0_0_Byte_Doublet_Handle_gti
         .R(sync_reset));
 endmodule
 
+(* ORIG_REF_NAME = "DAXI_interface" *) 
 module design_1_microblaze_0_0_DAXI_interface
    (D,
     \LOCKSTEP_Out_reg[3031] ,
@@ -5873,6 +5877,7 @@ module design_1_microblaze_0_0_DAXI_interface
         .R(sync_reset));
 endmodule
 
+(* ORIG_REF_NAME = "Data_Flow_Logic" *) 
 module design_1_microblaze_0_0_Data_Flow_Logic
    (mem_ex_result,
     Q,
@@ -6292,6 +6297,7 @@ module design_1_microblaze_0_0_Data_Flow_Logic
         .R(SR));
 endmodule
 
+(* ORIG_REF_NAME = "Data_Flow_gti" *) 
 module design_1_microblaze_0_0_Data_Flow_gti
    (Q,
     \Using_FPGA.Native ,
@@ -7418,6 +7424,7 @@ module design_1_microblaze_0_0_Data_Flow_gti
         .wb_piperun(wb_piperun));
 endmodule
 
+(* ORIG_REF_NAME = "Debug" *) 
 module design_1_microblaze_0_0_Debug
    (Sleep,
     LOCKSTEP_Master_Out,
@@ -10525,6 +10532,7 @@ module design_1_microblaze_0_0_Debug
         .R(1'b0));
 endmodule
 
+(* ORIG_REF_NAME = "Decode_gti" *) 
 module design_1_microblaze_0_0_Decode_gti
    (use_Reg_Neg_S_reg,
     D,
@@ -14966,6 +14974,7 @@ module design_1_microblaze_0_0_Decode_gti
         .R(1'b0));
 endmodule
 
+(* ORIG_REF_NAME = "MB_AND2B1L" *) 
 module design_1_microblaze_0_0_MB_AND2B1L
    (D,
     E,
@@ -14987,6 +14996,7 @@ module design_1_microblaze_0_0_MB_AND2B1L
         .SRI(SRI));
 endmodule
 
+(* ORIG_REF_NAME = "MB_FDE" *) 
 module design_1_microblaze_0_0_MB_FDE
    (\LOCKSTEP_Out_reg[2914] ,
     mem_valid_reg,
@@ -15882,6 +15892,7 @@ module design_1_microblaze_0_0_MB_FDE_403
         .R(1'b0));
 endmodule
 
+(* ORIG_REF_NAME = "MB_FDR" *) 
 module design_1_microblaze_0_0_MB_FDR
    (\Using_FPGA.Native_0 ,
     sync_reset,
@@ -15933,6 +15944,7 @@ module design_1_microblaze_0_0_MB_FDR
         .O(\Using_FPGA.Native_0 ));
 endmodule
 
+(* ORIG_REF_NAME = "MB_FDRE" *) 
 module design_1_microblaze_0_0_MB_FDRE
    (D,
     sync_reset,
@@ -26191,6 +26203,7 @@ module design_1_microblaze_0_0_MB_FDR_308
         .O(\Using_FPGA.Native_0 ));
 endmodule
 
+(* ORIG_REF_NAME = "MB_FDS" *) 
 module design_1_microblaze_0_0_MB_FDS
    (if_sel_input,
     I0169_out,
@@ -26717,6 +26730,7 @@ module design_1_microblaze_0_0_MB_FDS
         .O(\Using_FPGA.Native_0 ));
 endmodule
 
+(* ORIG_REF_NAME = "MB_LUT4" *) 
 module design_1_microblaze_0_0_MB_LUT4
    (S,
     Q,
@@ -26746,6 +26760,7 @@ module design_1_microblaze_0_0_MB_LUT4
         .O(S));
 endmodule
 
+(* ORIG_REF_NAME = "MB_LUT6" *) 
 module design_1_microblaze_0_0_MB_LUT6
    (sel_input_iii_3,
     if_sel_input,
@@ -26885,6 +26900,7 @@ module design_1_microblaze_0_0_MB_LUT6_120
         .O(sel_input_iii_0));
 endmodule
 
+(* ORIG_REF_NAME = "MB_LUT6_2" *) 
 module design_1_microblaze_0_0_MB_LUT6_2
    (DI,
     S,
@@ -30338,6 +30354,7 @@ module design_1_microblaze_0_0_MB_LUT6__parameterized8_85
         .O(of_read_mem_write_op3_conflict_part1));
 endmodule
 
+(* ORIG_REF_NAME = "MB_MULT_AND" *) 
 module design_1_microblaze_0_0_MB_MULT_AND
    (DI,
     Q,
@@ -30361,6 +30378,7 @@ module design_1_microblaze_0_0_MB_MULT_AND
         .O(DI));
 endmodule
 
+(* ORIG_REF_NAME = "MB_MUXCY" *) 
 module design_1_microblaze_0_0_MB_MUXCY
    (mem_databus_ready,
     S,
@@ -32889,6 +32907,7 @@ module design_1_microblaze_0_0_MB_MUXCY_99
         .O(mem_jump_taken_reg));
 endmodule
 
+(* ORIG_REF_NAME = "MB_MUXCY_XORCY" *) 
 module design_1_microblaze_0_0_MB_MUXCY_XORCY
    (O56_out,
     Q,
@@ -37470,6 +37489,7 @@ module design_1_microblaze_0_0_MB_MUXCY_XORCY_582
   assign \Using_FPGA.Native  = lopt;
 endmodule
 
+(* ORIG_REF_NAME = "MB_MUXF7" *) 
 module design_1_microblaze_0_0_MB_MUXF7
    (sel_input_i_1,
     I4_1,
@@ -41879,6 +41899,7 @@ module design_1_microblaze_0_0_MB_MUXF7_457
         .O(\Using_FPGA.Native_i_3__45_n_0 ));
 endmodule
 
+(* ORIG_REF_NAME = "MB_RAM32M" *) 
 module design_1_microblaze_0_0_MB_RAM32M
    (GPR_Op1,
     GPR_Op2,
@@ -42913,6 +42934,7 @@ module design_1_microblaze_0_0_MB_RAM32M_425
         .WE(WB_GPR_Wr));
 endmodule
 
+(* ORIG_REF_NAME = "MB_SRL16E" *) 
 module design_1_microblaze_0_0_MB_SRL16E
    (Q_0,
     Q,
@@ -43461,6 +43483,7 @@ module design_1_microblaze_0_0_MB_SRL16E__parameterized9
         .Q(Q1_in));
 endmodule
 
+(* ORIG_REF_NAME = "MB_SRLC16E" *) 
 module design_1_microblaze_0_0_MB_SRLC16E
    (SRL16_Sel_7,
     which_pc__0,
@@ -43796,7 +43819,7 @@ endmodule
 (* C_DEBUG_TRACE_SIZE = "8192" *) (* C_DIV_ZERO_EXCEPTION = "0" *) (* C_DYNAMIC_BUS_SIZING = "0" *) 
 (* C_D_AXI = "1" *) (* C_D_LMB = "1" *) (* C_ECC_USE_CE_EXCEPTION = "0" *) 
 (* C_EDGE_IS_POSITIVE = "1" *) (* C_ENDIANNESS = "1" *) (* C_FAMILY = "artix7" *) 
-(* C_FAULT_TOLERANT = "0" *) (* C_FPU_EXCEPTION = "0" *) (* C_FREQ = "100000000" *) 
+(* C_FAULT_TOLERANT = "0" *) (* C_FPU_EXCEPTION = "0" *) (* C_FREQ = "75000000" *) 
 (* C_FSL_EXCEPTION = "0" *) (* C_FSL_LINKS = "0" *) (* C_IADDR_SIZE = "32" *) 
 (* C_ICACHE_ALWAYS_USED = "0" *) (* C_ICACHE_BASEADDR = "64'b0000000000000000000000000000000000000000000000000000000000000000" *) (* C_ICACHE_DATA_WIDTH = "0" *) 
 (* C_ICACHE_FORCE_TAG_LUTRAM = "0" *) (* C_ICACHE_HIGHADDR = "64'b0000000000000000000000000000000000111111111111111111111111111111" *) (* C_ICACHE_LINE_LEN = "4" *) 
@@ -43837,7 +43860,8 @@ endmodule
 (* C_USE_EXT_NM_BRK = "0" *) (* C_USE_FPU = "0" *) (* C_USE_HW_MUL = "0" *) 
 (* C_USE_ICACHE = "0" *) (* C_USE_INTERRUPT = "0" *) (* C_USE_MMU = "0" *) 
 (* C_USE_MSR_INSTR = "0" *) (* C_USE_NON_SECURE = "0" *) (* C_USE_PCMP_INSTR = "0" *) 
-(* C_USE_REORDER_INSTR = "1" *) (* C_USE_STACK_PROTECTION = "0" *) (* downgradeipidentifiedwarnings = "yes" *) 
+(* C_USE_REORDER_INSTR = "1" *) (* C_USE_STACK_PROTECTION = "0" *) (* ORIG_REF_NAME = "MicroBlaze" *) 
+(* downgradeipidentifiedwarnings = "yes" *) 
 module design_1_microblaze_0_0_MicroBlaze
    (RAM_To,
     RAM_From,
@@ -56450,6 +56474,7 @@ module design_1_microblaze_0_0_MicroBlaze
        (.P(\<const1> ));
 endmodule
 
+(* ORIG_REF_NAME = "MicroBlaze_Core" *) 
 module design_1_microblaze_0_0_MicroBlaze_Core
    (use_Reg_Neg_S_reg,
     WB_Read_Imm_Reg_1_reg,
@@ -56707,6 +56732,7 @@ module design_1_microblaze_0_0_MicroBlaze_Core
         .O(reset_temp__0));
 endmodule
 
+(* ORIG_REF_NAME = "MicroBlaze_GTi" *) 
 module design_1_microblaze_0_0_MicroBlaze_GTi
    (use_Reg_Neg_S_reg,
     WB_Read_Imm_Reg_1_reg,
@@ -58525,6 +58551,7 @@ module design_1_microblaze_0_0_MicroBlaze_GTi
         .R(1'b0));
 endmodule
 
+(* ORIG_REF_NAME = "Operand_Select_gti" *) 
 module design_1_microblaze_0_0_Operand_Select_gti
    (\Using_FPGA.Native ,
     Q,
@@ -60710,6 +60737,7 @@ module design_1_microblaze_0_0_Operand_Select_gti
         .O(in0));
 endmodule
 
+(* ORIG_REF_NAME = "PC_Module_gti" *) 
 module design_1_microblaze_0_0_PC_Module_gti
    (D,
     O56_out,
@@ -62996,6 +63024,7 @@ module design_1_microblaze_0_0_PC_Module_gti
         .R(sync_reset));
 endmodule
 
+(* ORIG_REF_NAME = "PreFetch_Buffer_gti" *) 
 module design_1_microblaze_0_0_PreFetch_Buffer_gti
    (\Using_FPGA.Native ,
     \Using_FPGA.Native_0 ,
@@ -65636,6 +65665,7 @@ module design_1_microblaze_0_0_PreFetch_Buffer_gti
         .Q(p_1_in164_in));
 endmodule
 
+(* ORIG_REF_NAME = "Register_File_gti" *) 
 module design_1_microblaze_0_0_Register_File_gti
    (\EX_Op3_reg[18] ,
     GPR_Op3,
@@ -65925,6 +65955,7 @@ module design_1_microblaze_0_0_Register_File_gti
         .\wb_gpr_write_addr_reg[0] (\wb_gpr_write_addr_reg[0] ));
 endmodule
 
+(* ORIG_REF_NAME = "Shift_Logic_Module_gti" *) 
 module design_1_microblaze_0_0_Shift_Logic_Module_gti
    (out,
     \Using_FPGA.Native ,
@@ -65944,6 +65975,7 @@ module design_1_microblaze_0_0_Shift_Logic_Module_gti
   assign sign_16_23 = in0;
 endmodule
 
+(* ORIG_REF_NAME = "Zero_Detect_gti" *) 
 module design_1_microblaze_0_0_Zero_Detect_gti
    (ex_op1_zero,
     ex_op1_cmp_equal,
@@ -66094,6 +66126,7 @@ module design_1_microblaze_0_0_Zero_Detect_gti
         .O(\Zero_Detecting[5].nibble_Zero_reg ));
 endmodule
 
+(* ORIG_REF_NAME = "address_hit" *) 
 module design_1_microblaze_0_0_address_hit
    (Hit,
     \Performance_Debug_Control.ex_dbg_pc_hit_i_reg ,
@@ -66334,6 +66367,7 @@ module design_1_microblaze_0_0_address_hit
         .single_Step_N(single_Step_N));
 endmodule
 
+(* ORIG_REF_NAME = "carry_and" *) 
 module design_1_microblaze_0_0_carry_and
    (of_PipeRun_carry_1,
     \Using_FPGA.Native ,
@@ -67102,6 +67136,7 @@ module design_1_microblaze_0_0_carry_and_90
         .wb_valid_reg_0(wb_valid_reg_0));
 endmodule
 
+(* ORIG_REF_NAME = "carry_or" *) 
 module design_1_microblaze_0_0_carry_or
    (mem_databus_ready,
     S,
@@ -67191,6 +67226,7 @@ module design_1_microblaze_0_0_carry_or_91
         .mem_wait_on_ready_N(mem_wait_on_ready_N));
 endmodule
 
+(* ORIG_REF_NAME = "exception_registers_gti" *) 
 module design_1_microblaze_0_0_exception_registers_gti
    (DI,
     \LOCKSTEP_Out_reg[2944] ,
@@ -68362,6 +68398,7 @@ module design_1_microblaze_0_0_exception_registers_gti
         .wb_PC_II_22(wb_PC_II_22));
 endmodule
 
+(* ORIG_REF_NAME = "instr_mux" *) 
 module design_1_microblaze_0_0_instr_mux
    (I041_out,
     Y,
@@ -68408,6 +68445,7 @@ module design_1_microblaze_0_0_instr_mux
         .in(in));
 endmodule
 
+(* ORIG_REF_NAME = "jump_logic" *) 
 module design_1_microblaze_0_0_jump_logic
    (ex_jump,
     ex_op1_cmp_equal,
@@ -68851,6 +68889,7 @@ module design_1_microblaze_0_0_jump_logic
         .R(reset_bool_for_rst));
 endmodule
 
+(* ORIG_REF_NAME = "mb_sync_bit" *) 
 module design_1_microblaze_0_0_mb_sync_bit
    (out,
     reset_temp__0,
@@ -69857,6 +69896,7 @@ module design_1_microblaze_0_0_mb_sync_bit__parameterized4_30
         .R(sync_reset));
 endmodule
 
+(* ORIG_REF_NAME = "mb_sync_vec" *) 
 module design_1_microblaze_0_0_mb_sync_vec
    (D,
     AR,
@@ -70043,6 +70083,7 @@ module design_1_microblaze_0_0_mb_sync_vec__parameterized1
         .sync_reset(sync_reset));
 endmodule
 
+(* ORIG_REF_NAME = "msr_reg_gti" *) 
 module design_1_microblaze_0_0_msr_reg_gti
    (\wb_MSR_i_reg[28]_0 ,
     \wb_MSR_i_reg[29]_0 ,
@@ -70207,6 +70248,7 @@ module design_1_microblaze_0_0_msr_reg_gti
         .R(sync_reset));
 endmodule
 
+(* ORIG_REF_NAME = "mux_bus" *) 
 module design_1_microblaze_0_0_mux_bus
    (I041_out,
     Y,

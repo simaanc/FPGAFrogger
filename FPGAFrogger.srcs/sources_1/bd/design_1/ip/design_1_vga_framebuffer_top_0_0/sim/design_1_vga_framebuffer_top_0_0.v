@@ -64,7 +64,8 @@ module design_1_vga_framebuffer_top_0_0 (
   VGA_Vsync,
   VGA_Red,
   VGA_Green,
-  VGA_Blue
+  VGA_Blue,
+  frame_ready
 );
 
 input wire clk_pix;
@@ -77,6 +78,7 @@ output wire VGA_Vsync;
 output wire [3 : 0] VGA_Red;
 output wire [3 : 0] VGA_Green;
 output wire [3 : 0] VGA_Blue;
+output wire frame_ready;
 
   vga_framebuffer_top #(
     .FB_WIDTH(224),
@@ -93,6 +95,7 @@ output wire [3 : 0] VGA_Blue;
     .VGA_Vsync(VGA_Vsync),
     .VGA_Red(VGA_Red),
     .VGA_Green(VGA_Green),
-    .VGA_Blue(VGA_Blue)
+    .VGA_Blue(VGA_Blue),
+    .frame_ready(frame_ready)
   );
 endmodule

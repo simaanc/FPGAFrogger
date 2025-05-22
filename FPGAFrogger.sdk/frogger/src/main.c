@@ -13,28 +13,29 @@
 /* framebuffer geometry */
 #define FB_W 224
 #define FB_H 256
-#define TILE_W SPR_W
-#define TILE_H SPR_H
+#define TILE_W SPR_W          /* 16 */
+#define TILE_H SPR_H          /* 16 */
 
-/* GPIO peripheral IDs */
-#define WE_DEVICE_ID     XPAR_AXI_GPIO_WE_DEVICE_ID
-#define ADDR_DEVICE_ID   XPAR_AXI_GPIO_ADDR_DEVICE_ID
-#define DAT_DEVICE_ID    XPAR_AXI_GPIO_DAT_DEVICE_ID
-#define VSYNC_DEVICE_ID  XPAR_AXI_GPIO_VSYNC_DEVICE_ID
-#define GPIO_CH          1
+/* GPIO peripheral IDs - ADD the frame_ready GPIO in Vivado! */
+#define WE_DEVICE_ID       XPAR_AXI_GPIO_WE_DEVICE_ID
+#define ADDR_DEVICE_ID     XPAR_AXI_GPIO_ADDR_DEVICE_ID
+#define DAT_DEVICE_ID      XPAR_AXI_GPIO_DAT_DEVICE_ID
+#define VSYNC_DEVICE_ID    XPAR_AXI_GPIO_VSYNC_DEVICE_ID
+#define FRAME_RDY_DEVICE_ID XPAR_AXI_GPIO_FRAME_RDY_DEVICE_ID  // NEW: Add this in block design
+#define GPIO_CH            1
 
-/* keypad */
-#define KYPD_GPIO_ID     XPAR_PMODKYPD_0_AXI_LITE_GPIO_BASEADDR
-#define KEYTABLE         "0FED789C456B123A"
+/* keypad (PMOD KYPD) */
+#define KYPD_GPIO_ID       XPAR_PMODKYPD_0_AXI_LITE_GPIO_BASEADDR
+#define KEYTABLE           "0FED789C456B123A"
 
-/* green timer bar */
+/* green timer bar (bottom of screen) */
 #define BAR_W          118
 #define BAR_H          8
 #define BAR_Y0         (FB_H - BAR_H)
 #define BAR_X1         (FB_W - 32 - 1)
 #define BAR_X0         (BAR_X1 - BAR_W + 1)
 #define BAR_COLOR      0x6
-#define BAR_FRAMES     (30 * 60)
+#define BAR_FRAMES     (30 * 60)        // 30 seconds at 60fps
 #define FRAMES_PER_COL (BAR_FRAMES / BAR_W)
 
 /* River and road boundaries */
@@ -43,23 +44,25 @@
 #define ROAD_TOP     144
 #define ROAD_BOTTOM  224
 
-/* moving object type */
+/* moving object type (logs, cars, frog) */
 struct Obj {
-    int x, y;
-    int px, py;
-    int idx;
-    int dx;
+    int x, y;      /* current position */
+    int px, py;    /* previous position (not used in new approach) */
+    int idx;       /* sprite index */
+    int dx;        /* velocity (for logs/cars) */
 };
 
 /* peripherals */
-static XGpio    gpio_we, gpio_addr, gpio_dat, gpio_vsync;
+static XGpio    gpio_we, gpio_addr, gpio_dat, gpio_vsync, gpio_frame_rdy;
 static PmodKYPD keypad;
 
 /* global game objects and state */
 static struct Obj log0, log1, log2, car0, car1, frog;
+/* lengths of each log in tiles */
 static int log0_len = 4;
 static int log1_len = 6;
 static int log2_len = 3;
+/* lily-pad targets */
 static struct {
     int x;
     int filled;
@@ -71,9 +74,19 @@ static int score     = 0;
 static int game_over = 0;
 static int log_dx    = 0;
 
-/* tight pixel write (back buffer) */
+/* timer bar state */
+static int bar_cols, bar_frame;
+
+/* Safe pixel write with bounds checking */
 static inline void draw_pixel(int x, int y, uint8_t c4) {
+    // Bounds check to prevent crashes
+    if (x < 0 || x >= FB_W || y < 0 || y >= FB_H) return;
+
     uint16_t idx = y * FB_W + x;
+
+    // Additional safety check
+    if (idx >= FB_W * FB_H) return;
+
     XGpio_DiscreteWrite(&gpio_addr, GPIO_CH, idx);
     XGpio_DiscreteWrite(&gpio_dat,  GPIO_CH, c4 & 0xF);
     XGpio_DiscreteWrite(&gpio_we,   GPIO_CH, 1);
@@ -82,18 +95,12 @@ static inline void draw_pixel(int x, int y, uint8_t c4) {
 
 /* background palette index at (x,y) */
 static inline uint8_t bg_pixel(int x, int y) {
+    if (x < 0 || x >= FB_W || y < 0 || y >= FB_H) return 0;
+
     int tx = x / TILE_W, ty = y / TILE_H;
     int ox = x & (TILE_W-1), oy = y & (TILE_H-1);
     uint8_t tid = bg_tilemap[ty][tx];
     return background[tid][oy * TILE_W + ox];
-}
-
-/* restore one 16×16 block from background */
-static void restore_block(int x, int y) {
-    for (int dy = 0; dy < TILE_H; dy++)
-        for (int dx = 0; dx < TILE_W; dx++)
-            draw_pixel(x + dx, y + dy,
-                       bg_pixel(x + dx, y + dy));
 }
 
 /* draw sprite (transparent index 0) */
@@ -119,36 +126,36 @@ static void draw_log(int x, int y, int len) {
     draw_sprite(48, x + (len - 1) * TILE_W, y);
 }
 
-/* restore the background behind a multi-tile log */
-static void restore_log(int x, int y, int len) {
-    for (int i = 0; i < len; i++)
-        restore_block(x + i * TILE_W, y);
+/* Wait for hardware state machine to clear back buffer and be ready */
+static void wait_frame_ready(void) {
+    // Wait for frame_ready to go low (state machine working: INIT/CLEAR states)
+    while (XGpio_DiscreteRead(&gpio_frame_rdy, GPIO_CH) & 1);
+
+    // Wait for frame_ready to go high (DRAW state: back buffer cleared and ready)
+    while (!(XGpio_DiscreteRead(&gpio_frame_rdy, GPIO_CH) & 1));
+
+    // Now we can draw - hardware guarantees a clean, cleared back buffer
 }
 
-/* VSYNC high → low edge (end of blank) */
-static void wait_vsync_edge(void) {
-    while (!(XGpio_DiscreteRead(&gpio_vsync, GPIO_CH) & 1));
-    while  (XGpio_DiscreteRead(&gpio_vsync, GPIO_CH) & 1);
+/* Timer bar functions */
+static void bar_draw(void) {
+    for (int x = BAR_X0; x <= BAR_X1; x++) {
+        uint8_t color = (x - BAR_X0 < bar_cols) ? BAR_COLOR : bg_pixel(x, BAR_Y0);
+        for (int y = 0; y < BAR_H; y++) {
+            draw_pixel(x, BAR_Y0 + y, color);
+        }
+    }
 }
 
-/* green bar helpers */
-static int bar_cols, bar_frame;
-static inline void bar_set_column(int x, uint8_t col4) {
-    for (int y = 0; y < BAR_H; y++)
-        draw_pixel(x, BAR_Y0 + y, col4);
-}
 static void bar_init(void) {
     bar_cols  = BAR_W;
     bar_frame = 0;
-    for (int x = BAR_X0; x <= BAR_X1; x++)
-        bar_set_column(x, BAR_COLOR);
 }
+
 static void bar_tick(void) {
     if (bar_cols == 0) return;
     if (++bar_frame >= FRAMES_PER_COL) {
         bar_frame = 0;
-        int x = BAR_X1 - bar_cols + 1;
-        bar_set_column(x, bg_pixel(x, BAR_Y0));
         --bar_cols;
     }
 }
@@ -162,7 +169,7 @@ static int check_frog_on_log(int fx,int fy,
     if (fy == l0y && abs(fx - l0x) < TILE_W) return l0dx;
     if (fy == l1y && abs(fx - l1x) < TILE_W) return l1dx;
     if (fy == l2y && abs(fx - l2x) < TILE_W) return l2dx;
-    return -999;
+    return -999;  /* drowning */
 }
 
 /* Check for collisions with cars */
@@ -172,19 +179,23 @@ static int check_collision(int fx,int fy,int cx,int cy) {
 
 /* init GPIO & keypad */
 static void init_io(void) {
-    XGpio_Initialize(&gpio_we,   WE_DEVICE_ID);
-    XGpio_Initialize(&gpio_addr, ADDR_DEVICE_ID);
-    XGpio_Initialize(&gpio_dat,  DAT_DEVICE_ID);
-    XGpio_SetDataDirection(&gpio_we,   GPIO_CH, 0);
-    XGpio_SetDataDirection(&gpio_addr, GPIO_CH, 0);
-    XGpio_SetDataDirection(&gpio_dat,  GPIO_CH, 0);
-    XGpio_Initialize(&gpio_vsync, VSYNC_DEVICE_ID);
-    XGpio_SetDataDirection(&gpio_vsync, GPIO_CH, 0xFFFFFFFF);
+    XGpio_Initialize(&gpio_we,        WE_DEVICE_ID);
+    XGpio_Initialize(&gpio_addr,      ADDR_DEVICE_ID);
+    XGpio_Initialize(&gpio_dat,       DAT_DEVICE_ID);
+    XGpio_Initialize(&gpio_vsync,     VSYNC_DEVICE_ID);
+    XGpio_Initialize(&gpio_frame_rdy, FRAME_RDY_DEVICE_ID);  // NEW
+
+    XGpio_SetDataDirection(&gpio_we,        GPIO_CH, 0);           // Output
+    XGpio_SetDataDirection(&gpio_addr,      GPIO_CH, 0);           // Output
+    XGpio_SetDataDirection(&gpio_dat,       GPIO_CH, 0);           // Output
+    XGpio_SetDataDirection(&gpio_vsync,     GPIO_CH, 0xFFFFFFFF);  // Input
+    XGpio_SetDataDirection(&gpio_frame_rdy, GPIO_CH, 0xFFFFFFFF);  // Input
+
     KYPD_begin(&keypad, KYPD_GPIO_ID);
     KYPD_loadKeyTable(&keypad, (u8*)KEYTABLE);
 }
 
-/* Reset frog & timer bar */
+/* Reset frog to starting position */
 static void reset_frog(struct Obj *f) {
     f->x  = (FB_W - TILE_W) / 2;
     f->y  = FB_H - 2 * TILE_H;
@@ -192,57 +203,78 @@ static void reset_frog(struct Obj *f) {
     bar_init();
 }
 
-/* Clear entire screen to background */
-static void clear_screen(void) {
+/* Draw complete frame (hardware auto-cleared to black) */
+static void draw_complete_frame(void) {
+    // Draw background - hardware cleared to black, so only draw non-black tiles
     for (int ty = 0; ty < FB_H / TILE_H; ty++) {
         for (int tx = 0; tx < FB_W / TILE_W; tx++) {
             uint8_t tid = bg_tilemap[ty][tx];
-            for (int dy = 0; dy < TILE_H; dy++) {
-                for (int dx = 0; dx < TILE_W; dx++) {
-                    int x = tx * TILE_W + dx;
-                    int y = ty * TILE_H + dy;
-                    draw_pixel(x, y, background[tid][dy * TILE_W + dx]);
+            if (tid != 0) {  // Only draw non-black background tiles
+                for (int dy = 0; dy < TILE_H; dy++) {
+                    for (int dx = 0; dx < TILE_W; dx++) {
+                        int x = tx * TILE_W + dx;
+                        int y = ty * TILE_H + dy;
+                        uint8_t color = background[tid][dy * TILE_W + dx];
+                        if (color != 0) {  // Don't overdraw black pixels
+                            draw_pixel(x, y, color);
+                        }
+                    }
                 }
             }
         }
     }
+
+    // Draw all lily-pad targets
+    for (int i = 0; i < 5; i++) {
+        if (!targets[i].filled) {
+            draw_sprite(29, targets[i].x, 32);
+        } else {
+            // Draw filled target (frog on lily pad)
+            draw_sprite(30, targets[i].x, 32);  // Assuming sprite 30 is filled lily pad
+        }
+    }
+
+    // Draw timer bar
+    bar_draw();
+
+    // Draw logs
+    draw_log(log0.x, log0.y, log0_len);
+    draw_log(log1.x, log1.y, log1_len);
+    draw_log(log2.x, log2.y, log2_len);
+
+    // Draw cars
+    draw_sprite(car0.idx, car0.x, car0.y);
+    draw_sprite(car1.idx, car1.x, car1.y);
+
+    // Draw frog
+    draw_sprite(frog.idx, frog.x, frog.y);
+
+    // Draw lives at bottom-left
+    for (int i = 0; i < lives; i++)
+        draw_sprite(2, 8 + i*20, 242);
+
+    // Draw score icon at top-left
+    draw_sprite(27, 8, 8);
 }
 
 /* Initialize or restart the game */
 static void init_game(void) {
-    clear_screen();
-
-    log0 = (struct Obj){   0,  48,   0, 48, 48,  1 };
-    log1 = (struct Obj){ 128,  80, 128, 80, 48,  2 };
-    log2 = (struct Obj){ 128,  96, 128, 96, 48,  1 };
-    car0 = (struct Obj){ 128, 208, 128,208,  4, -5 };
-    car1 = (struct Obj){  64, 176,  64,176,  8,  3 };
+    // Reset game objects to starting positions and speeds
+    log0 = (struct Obj){   0,  48,   0, 48, 48,  1 };  // Top log, moves right
+    log1 = (struct Obj){ 128,  80, 128, 80, 48,  2 };  // Middle log, moves right
+    log2 = (struct Obj){ 128,  96, 128, 96, 48,  1 };  // Bottom log, moves right
+    car0 = (struct Obj){ 128, 208, 128,208,  4, -5 };  // Top car, moves left
+    car1 = (struct Obj){  64, 176,  64,176,  8,  3 };  // Bottom car, moves right
 
     frog.idx = 2;
     frog.dx  = 0;
     reset_frog(&frog);
     log_dx = 0;
 
-    /* draw all 5 targets at y=32, sprite 29 */
-    for (int i = 0; i < 5; i++)
-        draw_sprite(29, targets[i].x, 32);
-
-    /* draw variable-length logs */
-    draw_log(log0.x, log0.y, log0_len);
-    draw_log(log1.x, log1.y, log1_len);
-    draw_log(log2.x, log2.y, log2_len);
-
-    /* draw cars & frog */
-    draw_sprite(car0.idx, car0.x, car0.y);
-    draw_sprite(car1.idx, car1.x, car1.y);
-    draw_sprite(frog.idx, frog.x, frog.y);
-
-    /* draw lives (sprite 2) at bottom-left */
-    for (int i = 0; i < lives; i++)
-        draw_sprite(2, 8 + i*20, 242);
-
-    /* draw score icon */
-    draw_sprite(27, 8, 8);
+    // Reset all lily-pad targets
+    for (int i = 0; i < 5; i++) {
+        targets[i].filled = 0;
+    }
 }
 
 int main(void) {
@@ -253,13 +285,17 @@ int main(void) {
     uint8_t  key, last = 0;
 
     while (1) {
-        wait_vsync_edge();
+        // Wait for hardware to finish clearing back buffer and be ready
+        wait_frame_ready();
 
         if (game_over) {
-            draw_sprite(49,  60, 100);
-            draw_sprite(50,  80, 100);
-            draw_sprite(51, 100, 100);
-            draw_sprite(52, 120, 100);
+            // Draw game over screen
+            draw_complete_frame();  // Draw base frame first
+            // Add "GAME OVER" sprites
+            draw_sprite(49,  60, 100);  // G
+            draw_sprite(50,  80, 100);  // A
+            draw_sprite(51, 100, 100);  // M
+            draw_sprite(52, 120, 100);  // E
 
             ks = KYPD_getKeyStates(&keypad);
             st = KYPD_getKeyPressed(&keypad, ks, &key);
@@ -272,69 +308,89 @@ int main(void) {
             continue;
         }
 
-        /* erase previous logs */
-        restore_log(log0.px, log0.py, log0_len);
-        restore_log(log1.px, log1.py, log1_len);
-        restore_log(log2.px, log2.py, log2_len);
-        /* erase other objects */
-        restore_block(car0.px, car0.py);
-        restore_block(car1.px, car1.py);
-        restore_block(frog.px, frog.py);
-
-        /* move logs & cars */
+        // Update object positions
         log0.px = log0.x; log1.px = log1.x; log2.px = log2.x;
         car0.px = car0.x; car1.px = car1.x;
-        log0.x += log0.dx; if (log0.x > FB_W)  log0.x = -TILE_W;
-                          if (log0.x < -TILE_W) log0.x = FB_W;
-        log1.x += log1.dx; if (log1.x > FB_W)  log1.x = -TILE_W;
-                          if (log1.x < -TILE_W) log1.x = FB_W;
-        log2.x += log2.dx; if (log2.x > FB_W)  log2.x = -TILE_W;
-                          if (log2.x < -TILE_W) log2.x = FB_W;
-        car0.x += car0.dx; if (car0.x > FB_W)  car0.x = -TILE_W;
-                          if (car0.x < -TILE_W) car0.x = FB_W;
-        car1.x += car1.dx; if (car1.x > FB_W)  car1.x = -TILE_W;
-                          if (car1.x < -TILE_W) car1.x = FB_W;
 
-        /* carry frog on log */
+        // Move logs (wrap around screen edges)
+        log0.x += log0.dx;
+        if (log0.x > FB_W) log0.x = -log0_len * TILE_W;
+        if (log0.x < -log0_len * TILE_W) log0.x = FB_W;
+
+        log1.x += log1.dx;
+        if (log1.x > FB_W) log1.x = -log1_len * TILE_W;
+        if (log1.x < -log1_len * TILE_W) log1.x = FB_W;
+
+        log2.x += log2.dx;
+        if (log2.x > FB_W) log2.x = -log2_len * TILE_W;
+        if (log2.x < -log2_len * TILE_W) log2.x = FB_W;
+
+        // Move cars (wrap around screen edges)
+        car0.x += car0.dx;
+        if (car0.x > FB_W) car0.x = -TILE_W;
+        if (car0.x < -TILE_W) car0.x = FB_W;
+
+        car1.x += car1.dx;
+        if (car1.x > FB_W) car1.x = -TILE_W;
+        if (car1.x < -TILE_W) car1.x = FB_W;
+
+        // Handle frog riding on logs
         if (log_dx) {
             frog.px = frog.x;
             frog.x += log_dx;
+            // Check if frog fell off the side while riding log
             if (frog.x < 0 || frog.x > FB_W - TILE_W) {
-                if (--lives <= 0) { game_over = 1; continue; }
-                init_game(); continue;
+                if (--lives <= 0) {
+                    game_over = 1;
+                    continue;
+                }
+                init_game();
+                continue;
             }
         }
 
-        /* input/move frog */
+        // Handle player input
         ks = KYPD_getKeyStates(&keypad);
         st = KYPD_getKeyPressed(&keypad, ks, &key);
         if (st == KYPD_SINGLE_KEY && key != last) {
             frog.px = frog.x; frog.py = frog.y;
             int moved = 0;
             switch (key) {
-                case '2': case '8':
-                    frog.y -= TILE_H; moved = 1;
-                    if (frog.y < frog.py) score += 10;
+                case '2': case '8': // Up
+                    frog.y -= TILE_H;
+                    moved = 1;
+                    if (frog.y < frog.py) score += 10;  // Forward progress bonus
                     break;
-                case '5':
-                    frog.y += TILE_H; moved = 1; break;
-                case '4':
-                    frog.x -= TILE_W; moved = 1; break;
-                case '6':
-                    frog.x += TILE_W; moved = 1; break;
+                case '5': // Down
+                    frog.y += TILE_H;
+                    moved = 1;
+                    break;
+                case '4': // Left
+                    frog.x -= TILE_W;
+                    moved = 1;
+                    break;
+                case '6': // Right
+                    frog.x += TILE_W;
+                    moved = 1;
+                    break;
             }
+            // Keep frog on screen
             if (frog.x < 0) frog.x = 0;
             if (frog.x > FB_W - TILE_W) frog.x = FB_W - TILE_W;
             if (frog.y < 0) frog.y = 0;
             if (frog.y > FB_H - TILE_H) frog.y = FB_H - TILE_H;
+
             last = key;
-            if (moved) { log_dx = 0; bar_init(); }
+            if (moved) {
+                log_dx = 0;     // Stop riding log when moving
+                bar_init();     // Reset timer when moving
+            }
         }
         else if (st != KYPD_SINGLE_KEY) {
             last = 0;
         }
 
-        /* reached lily pad? */
+        // Check if frog reached lily pad
         if (frog.y < RIVER_TOP) {
             for (int i = 0; i < 5; i++) {
                 if (!targets[i].filled &&
@@ -342,70 +398,65 @@ int main(void) {
                 {
                     targets[i].filled = 1;
                     score += 100;
-                    int all = 1;
-                    for (int j = 0; j < 5; j++)
-                        if (!targets[j].filled) { all = 0; break; }
-                    if (all) game_over = 1;
-                    init_game();
+
+                    // Check if all lily pads filled (win condition)
+                    int all_filled = 1;
+                    for (int j = 0; j < 5; j++) {
+                        if (!targets[j].filled) {
+                            all_filled = 0;
+                            break;
+                        }
+                    }
+                    if (all_filled) {
+                        game_over = 1;  // Victory!
+                    } else {
+                        init_game();    // Reset for next frog
+                    }
+                    continue;
                 }
             }
         }
 
-        /* logs or drown */
+        // Check if frog is on a log (in river)
         log_dx = check_frog_on_log(
             frog.x, frog.y,
             log0.x, log0.y, log0.dx,
             log1.x, log1.y, log1.dx,
             log2.x, log2.y, log2.dx
         );
-        if (log_dx == -999) {
-            draw_sprite(15, frog.x, frog.y);
-            wait_vsync_edge();
-            sleep(1);
-            if (--lives <= 0) game_over = 1;
-            else              init_game();
+        if (log_dx == -999) {  // Frog is drowning
+            if (--lives <= 0) {
+                game_over = 1;
+            } else {
+                init_game();
+            }
             continue;
         }
 
-        /* collision with cars */
+        // Check collisions with cars
         if (check_collision(frog.x,frog.y,car0.x,car0.y) ||
             check_collision(frog.x,frog.y,car1.x,car1.y)) {
-            draw_sprite(15, frog.x, frog.y);
-            wait_vsync_edge();
-            sleep(1);
-            if (--lives <= 0) game_over = 1;
-            else              init_game();
+            if (--lives <= 0) {
+                game_over = 1;
+            } else {
+                init_game();
+            }
             continue;
         }
 
-        /* redraw targets */
-        for (int i = 0; i < 5; i++)
-            draw_sprite(29, targets[i].x, 32);
-
-        /* redraw variable-length logs */
-        draw_log(log0.x, log0.y, log0_len);
-        draw_log(log1.x, log1.y, log1_len);
-        draw_log(log2.x, log2.y, log2_len);
-
-        /* redraw cars & frog */
-        draw_sprite(car0.idx, car0.x, car0.y);
-        draw_sprite(car1.idx, car1.x, car1.y);
-        draw_sprite(frog.idx, frog.x, frog.y);
-
-        /* redraw lives at bottom-left */
-        for (int i = 0; i < lives; i++)
-            draw_sprite(2, 8 + i*20, 242);
-
-        /* redraw score icon */
-        draw_sprite(27, 8, 8);
-
-        /* timer tick */
+        // Update timer bar
         bar_tick();
-        if (bar_cols == 0) {
-            if (--lives <= 0) game_over = 1;
-            else              init_game();
+        if (bar_cols == 0) {  // Timer expired
+            if (--lives <= 0) {
+                game_over = 1;
+            } else {
+                init_game();
+            }
+            continue;
         }
 
+        // Draw complete frame to cleared back buffer
+        draw_complete_frame();
     }
 
     return 0;
