@@ -29,40 +29,40 @@ preplace inst vga_framebuffer_top_0 -pg 1 -lvl 6 -y 1140 -defaultsOSRD
 preplace inst clk_wiz_0 -pg 1 -lvl 1 -y 1060 -defaultsOSRD
 preplace inst microblaze_0_local_memory -pg 1 -lvl 5 -y 850 -defaultsOSRD
 preplace netloc vga_framebuffer_top_0_VGA_Green 1 6 1 NJ
-preplace netloc microblaze_0_axi_periph_M04_AXI 1 5 1 1730
-preplace netloc rst_clk_wiz_0_100M_bus_struct_reset 1 2 3 NJ 920 820J 750 1350
+preplace netloc microblaze_0_axi_periph_M04_AXI 1 5 1 1740
+preplace netloc rst_clk_wiz_0_100M_bus_struct_reset 1 2 3 580J 740 NJ 740 1330
 preplace netloc clk_wiz_0_locked 1 1 4 220 1160 NJ 1160 NJ 1160 NJ
 preplace netloc vga_framebuffer_top_0_VGA_Blue 1 6 1 NJ
 preplace netloc vga_framebuffer_top_0_VGA_Hsync 1 6 1 NJ
-preplace netloc axi_gpio_dat_gpio_io_o 1 5 2 1770 740 2090
-preplace netloc microblaze_0_Clk 1 1 5 200 1050 590J 960 840 990 1330 300 1740
-preplace netloc microblaze_0_axi_periph_M06_AXI 1 5 1 1700
-preplace netloc microblaze_0_axi_periph_M03_AXI 1 5 1 1730
-preplace netloc microblaze_0_M_AXI_DP 1 4 1 1320
+preplace netloc axi_gpio_dat_gpio_io_o 1 5 2 1780 740 2100
+preplace netloc microblaze_0_Clk 1 1 5 200 770 NJ 770 850 750 1360 290 1750
+preplace netloc microblaze_0_axi_periph_M06_AXI 1 5 1 1710
+preplace netloc microblaze_0_axi_periph_M03_AXI 1 5 1 1740
+preplace netloc microblaze_0_M_AXI_DP 1 4 1 1350
 preplace netloc microblaze_0_ilmb_1 1 4 1 N
-preplace netloc microblaze_0_axi_periph_M00_AXI 1 5 1 1710
-preplace netloc axi_gpio_we_gpio_io_o 1 5 2 1780 1040 2080
+preplace netloc microblaze_0_axi_periph_M00_AXI 1 5 1 1720
+preplace netloc axi_gpio_we_gpio_io_o 1 5 2 1790 1040 2090
 preplace netloc sys_clock_1 1 0 1 NJ
-preplace netloc microblaze_0_axi_periph_M05_AXI 1 5 1 1720
 preplace netloc PmodKYPD_0_Pmod_out 1 6 1 NJ
+preplace netloc microblaze_0_axi_periph_M05_AXI 1 5 1 1730
 preplace netloc axi_gpio_0_GPIO2 1 6 1 NJ
 preplace netloc microblaze_0_axi_periph_M01_AXI 1 5 1 N
-preplace netloc rst_clk_wiz_0_100M_mb_reset 1 2 2 570J 910 830
+preplace netloc rst_clk_wiz_0_100M_mb_reset 1 2 2 590J 920 850
 preplace netloc axi_uartlite_0_UART 1 6 1 NJ
 preplace netloc axi_gpio_0_GPIO 1 6 1 NJ
-preplace netloc axi_gpio_addr_gpio_io_o 1 5 2 1760 440 2090
+preplace netloc axi_gpio_addr_gpio_io_o 1 5 2 1770 440 2100
 preplace netloc proc_sys_reset_0_peripheral_reset 1 5 1 N
 preplace netloc vga_framebuffer_top_0_VGA_Red 1 6 1 NJ
-preplace netloc clk_wiz_0_clk_out2 1 1 5 N 1060 NJ 1060 NJ 1060 1340 1020 1720
-preplace netloc microblaze_0_axi_periph_M02_AXI 1 5 1 1710
+preplace netloc clk_wiz_0_clk_out2 1 1 5 200 1110 NJ 1110 NJ 1110 1340 1220 1730
+preplace netloc microblaze_0_axi_periph_M02_AXI 1 5 1 1720
 preplace netloc microblaze_0_dlmb_1 1 4 1 N
 preplace netloc microblaze_0_debug 1 3 1 N
-preplace netloc vga_framebuffer_top_0_VGA_Vsync 1 6 1 2090
-preplace netloc rst_clk_wiz_0_100M_peripheral_aresetn 1 2 4 NJ 980 NJ 980 1360 930 1750
-preplace netloc rst_clk_wiz_0_100M_interconnect_aresetn 1 2 3 570J 970 NJ 970 1340
-preplace netloc mdm_1_debug_sys_rst 1 1 3 230 1040 580J 950 810
-preplace netloc reset_1 1 0 5 20 980 210 1100 NJ 1100 NJ 1100 NJ
-levelinfo -pg 1 0 110 400 700 1080 1530 1930 2110 -top 0 -bot 1240
+preplace netloc vga_framebuffer_top_0_VGA_Vsync 1 6 1 2100
+preplace netloc rst_clk_wiz_0_100M_peripheral_aresetn 1 2 4 620J 730 NJ 730 1340 300 1760
+preplace netloc rst_clk_wiz_0_100M_interconnect_aresetn 1 2 3 600J 720 NJ 720 1330
+preplace netloc mdm_1_debug_sys_rst 1 1 3 220 840 610J 910 840
+preplace netloc reset_1 1 0 5 10 980 210 1100 NJ 1100 NJ 1100 NJ
+levelinfo -pg 1 -10 110 410 730 1090 1540 1940 2120 -top 0 -bot 1240
 ",
 }
 {

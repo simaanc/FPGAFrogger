@@ -1,19 +1,19 @@
 #include "xparameters.h"
 #include "xgpio.h"
 #include "xil_types.h"
-#include "sleep.h"            // busy-wait helpers (no usleep per pixel)
+#include "sleep.h"
 #include "PmodKYPD.h"
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "sprites.h"          // frog & log sprites (16×16)
-#include "background.h"       // background tile-map
-#undef  NUM_SPRITES           // silence duplicate warning
+#include "sprites.h"
+#include "background.h"
+#undef  NUM_SPRITES
 
 /* framebuffer geometry */
 #define FB_W 224
 #define FB_H 256
-#define TILE_W SPR_W          /* 16 */
+#define TILE_W SPR_W
 #define TILE_H SPR_H
 
 /* GPIO peripheral IDs */
@@ -21,13 +21,13 @@
 #define ADDR_DEVICE_ID   XPAR_AXI_GPIO_ADDR_DEVICE_ID
 #define DAT_DEVICE_ID    XPAR_AXI_GPIO_DAT_DEVICE_ID
 #define VSYNC_DEVICE_ID  XPAR_AXI_GPIO_VSYNC_DEVICE_ID
-#define GPIO_CH          1     /* all AXI-GPIO blocks use channel-1 */
+#define GPIO_CH          1
 
-/* keypad (PMOD KYPD) */
+/* keypad */
 #define KYPD_GPIO_ID     XPAR_PMODKYPD_0_AXI_LITE_GPIO_BASEADDR
 #define KEYTABLE         "0FED789C456B123A"
 
-/* green timer bar (bottom of screen) */
+/* green timer bar */
 #define BAR_W          118
 #define BAR_H          8
 #define BAR_Y0         (FB_H - BAR_H)
@@ -43,12 +43,12 @@
 #define ROAD_TOP     144
 #define ROAD_BOTTOM  224
 
-/* moving object type (logs, cars, frog) */
+/* moving object type */
 struct Obj {
-    int x, y;      /* current position */
-    int px, py;    /* previous position */
-    int idx;       /* sprite index */
-    int dx;        /* velocity (for logs/cars) */
+    int x, y;
+    int px, py;
+    int idx;
+    int dx;
 };
 
 /* peripherals */
@@ -57,11 +57,9 @@ static PmodKYPD keypad;
 
 /* global game objects and state */
 static struct Obj log0, log1, log2, car0, car1, frog;
-/* lengths of each log in tiles */
 static int log0_len = 4;
 static int log1_len = 6;
 static int log2_len = 3;
-/* lily-pad targets */
 static struct {
     int x;
     int filled;
@@ -149,7 +147,7 @@ static void bar_tick(void) {
     if (bar_cols == 0) return;
     if (++bar_frame >= FRAMES_PER_COL) {
         bar_frame = 0;
-        int x = BAR_X1 - bar_cols + 1;   // shrink left→right
+        int x = BAR_X1 - bar_cols + 1;
         bar_set_column(x, bg_pixel(x, BAR_Y0));
         --bar_cols;
     }
@@ -164,7 +162,7 @@ static int check_frog_on_log(int fx,int fy,
     if (fy == l0y && abs(fx - l0x) < TILE_W) return l0dx;
     if (fy == l1y && abs(fx - l1x) < TILE_W) return l1dx;
     if (fy == l2y && abs(fx - l2x) < TILE_W) return l2dx;
-    return -999;  /* drowning */
+    return -999;
 }
 
 /* Check for collisions with cars */
@@ -407,7 +405,7 @@ int main(void) {
             if (--lives <= 0) game_over = 1;
             else              init_game();
         }
-        
+
     }
 
     return 0;

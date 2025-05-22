@@ -27,24 +27,29 @@ module vga_framebuffer_top #(
   wire        active;
   wire [9:0]  xpos;
   wire [8:0]  ypos;
+  wire        screenend, animate;
+  
   vga640x480 u_vga (
     .i_clk(clk_pix), .i_pix_stb(1'b1), .i_rst(rst_pix),
     .o_hs(VGA_Hsync), .o_vs(VGA_Vsync),
     .o_active(active), .o_x(xpos), .o_y(ypos),
-    .o_blanking(), .o_screenend(), .o_animate()
+    .o_blanking(), .o_screenend(screenend), .o_animate(animate)
   );
 
-  //---- Ping-pong flip-flop ----
-  reg fb_front, prev_vs;
+  //---- Fixed ping-pong buffer control ----
+  reg fb_front, prev_animate;
+  
   always @(posedge clk_pix) begin
     if (rst_pix) begin
-      fb_front <= 1'b0;
-      prev_vs  <= 1'b0;
+      fb_front     <= 1'b0;  // Start with buffer 0 as front
+      prev_animate <= 1'b0;
     end else begin
-      prev_vs <= VGA_Vsync;
-      // Swap at the end of VSYNC (high?low)
-      if (prev_vs && !VGA_Vsync)
+      prev_animate <= animate;
+      
+      // Swap at end of active display (falling edge of animate)
+      if (prev_animate && !animate) begin
         fb_front <= ~fb_front;
+      end
     end
   end
 
@@ -54,7 +59,7 @@ module vga_framebuffer_top #(
     && ypos >= Y0 && ypos < Y0 + FB_HEIGHT;
   wire [ADDRW-1:0] pix_idx = (ypos - Y0) * FB_WIDTH + (xpos - X0);
 
-  //---- Dual BRAMs, both INIT'd from background.mem ----
+  //---- FIXED: CPU writes to BACK buffer, display reads FRONT buffer ----
   wire [BPP-1:0] dout0, dout1;
 
   bram_sdp #(
@@ -64,10 +69,10 @@ module vga_framebuffer_top #(
   ) bram0 (
     .clk_write  (clk_pix),
     .clk_read   (clk_pix),
-    .we         (cpu_we && !fb_front),       // back buffer write
+    .we         (cpu_we && fb_front),        // FIXED: Write when bram0 is BACK buffer
     .addr_write (cpu_addr[ADDRW-1:0]),
     .data_in    (cpu_dat),
-    .addr_read  (pix_idx),                    // always read current pixel
+    .addr_read  (pix_idx),
     .data_out   (dout0)
   );
 
@@ -78,14 +83,14 @@ module vga_framebuffer_top #(
   ) bram1 (
     .clk_write  (clk_pix),
     .clk_read   (clk_pix),
-    .we         (cpu_we && fb_front),        // back buffer write
+    .we         (cpu_we && !fb_front),       // FIXED: Write when bram1 is BACK buffer
     .addr_write (cpu_addr[ADDRW-1:0]),
     .data_in    (cpu_dat),
     .addr_read  (pix_idx),
     .data_out   (dout1)
   );
 
-  //---- Select front-buffer pixel ----
+  //---- Select front-buffer pixel for display ----
   wire [BPP-1:0] pix4 = fb_front ? dout1 : dout0;
 
   //---- Palette and VGA outputs ----
