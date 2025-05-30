@@ -32,7 +32,7 @@ module vga_sprite_rom #(
 
   localparam W = 16, H = 16;
 
-  // single 32-word ROM (two 16×16 sprites)
+  // single 32-word ROM (two 16ï¿½16 sprites)
   (* ram_style = "block" *) reg [W-1:0] rom [0:2*H-1];
   initial begin
     $readmemb("sprite.mem", rom);
