@@ -1,6 +1,7 @@
 #include "PmodKYPD.h"
 #include "background.h"
-#include "life.h"
+#include "letters.h"
+#include "numbers.h"
 #include "sleep.h"
 #include "sprites.h"
 #include "xgpio.h"
@@ -35,7 +36,7 @@
 #define FRAMES_PER_COL (BAR_FRAMES / BAR_W)
 
 #define RIVER_TOP 48
-#define RIVER_BOTTOM 128
+#define RIVER_BOTTOM 112
 #define ROAD_TOP 144
 #define ROAD_BOTTOM 224
 
@@ -63,6 +64,10 @@
 
 #define ANIM_FRAMES 3
 #define ANIM_SPEED 1
+
+// Color constants
+#define COLOR_WHITE 0xE
+#define COLOR_RED 0xA
 
 struct Obj {
     int x, y, px, py, idx, dx;
@@ -94,6 +99,9 @@ static int bar_cols, bar_frame, frog_dir = DIR_UP;
 static int anim_timer = 0, is_animating = 0;
 static int fly_timer = 0, fly_visible = 1, fly_target = -1;
 static int captured_frog_timer = 0;
+static int turtle_anim_timer = 0;
+static int turtle_anim_frame = 0;
+static int frog_highest_y; // Track highest y position reached (lowest y value)
 
 static inline void draw_pixel_fast(int x, int y, uint8_t c) {
     uint16_t idx = y * FB_W + x;
@@ -136,7 +144,7 @@ static void draw_sprite_fast(int n, int sx, int sy) {
     draw_sprite_flipped(n, sx, sy, 0, 0);
 }
 
-static void draw_sprite_8x8(const uint8_t *sprite_data, int sx, int sy) {
+static void draw_sprite_8x8_colored(const uint8_t *sprite_data, int sx, int sy, uint8_t color) {
     if (sx < -8 || sx >= FB_W || sy < -8 || sy >= FB_H)
         return;
 
@@ -147,11 +155,135 @@ static void draw_sprite_8x8(const uint8_t *sprite_data, int sx, int sy) {
 
         for (int dx = 0; dx < 8; ++dx) {
             uint8_t c = sprite_data[dy * 8 + dx];
-            if (c) {
+            if (c) {  // If pixel is not transparent (was 0xE in original)
                 int x = sx + dx;
                 if ((unsigned)x < FB_W)
-                    draw_pixel_fast(x, y, c);
+                    draw_pixel_fast(x, y, color);
             }
+        }
+    }
+}
+
+static void draw_sprite_8x8(const uint8_t *sprite_data, int sx, int sy) {
+    draw_sprite_8x8_colored(sprite_data, sx, sy, COLOR_WHITE);
+}
+
+static void draw_number_colored(int number, int x, int y, uint8_t color) {
+    // Handle negative numbers or zero
+    if (number <= 0) {
+        draw_sprite_8x8_colored(numbers[0], x, y, color);
+        return;
+    }
+    
+    // Prevent score from getting too large (avoid overflow)
+    if (number > 999999) {
+        number = 999999;
+    }
+    
+    // Count digits to position correctly
+    int temp = number;
+    int digit_count = 0;
+    while (temp > 0) {
+        temp /= 10;
+        digit_count++;
+    }
+    
+    // Draw digits from right to left
+    int current_x = x + (digit_count - 1) * 8;
+    while (number > 0) {
+        int digit = number % 10;
+        draw_sprite_8x8_colored(numbers[digit], current_x, y, color);
+        number /= 10;
+        current_x -= 8;
+    }
+}
+
+static void draw_number(int number, int x, int y) {
+    draw_number_colored(number, x, y, COLOR_WHITE);
+}
+
+// Draw a single letter (A-Z) with specified color
+static void draw_letter_colored(char letter, int x, int y, uint8_t color) {
+    if (letter >= 'A' && letter <= 'Z') {
+        draw_sprite_8x8_colored(letters[letter - 'A'], x, y, color);
+    } else if (letter >= 'a' && letter <= 'z') {
+        draw_sprite_8x8_colored(letters[letter - 'a'], x, y, color);  // Convert to uppercase
+    }
+}
+
+// Draw a single letter (A-Z)
+static void draw_letter(char letter, int x, int y) {
+    draw_letter_colored(letter, x, y, COLOR_WHITE);
+}
+
+// Draw a string of text (letters and numbers only) with specified color
+static void draw_text_colored(const char* text, int x, int y, uint8_t color) {
+    int current_x = x;
+    
+    while (*text) {
+        char c = *text;
+        
+        if (c >= 'A' && c <= 'Z') {
+            draw_sprite_8x8_colored(letters[c - 'A'], current_x, y, color);
+        } else if (c >= 'a' && c <= 'z') {
+            draw_sprite_8x8_colored(letters[c - 'a'], current_x, y, color);  // Convert to uppercase
+        } else if (c >= '0' && c <= '9') {
+            draw_sprite_8x8_colored(numbers[c - '0'], current_x, y, color);
+        } else if (c == ' ') {
+            // Space - just advance position
+        }
+        // Skip any other characters
+        
+        current_x += 8;  // Move to next character position
+        text++;
+    }
+}
+
+// Draw a string of text (letters and numbers only)
+static void draw_text(const char* text, int x, int y) {
+    draw_text_colored(text, x, y, COLOR_WHITE);
+}
+
+// Get turtle animation sprite index
+static int get_turtle_sprite(int base_sprite, int is_diving) {
+    if (is_diving) {
+        return 25;  // Diving turtles use sprite 25
+    }
+
+    // Animation sequence: 22 -> 23 -> 24 -> 23 -> 22
+    switch (turtle_anim_frame) {
+        case 0: return 22;
+        case 1: return 23;
+        case 2: return 24;
+        case 3: return 23;
+        default: return 22;
+    }
+}
+
+// Update turtle animation
+static void update_turtle_animation() {
+    turtle_anim_timer++;
+    if (turtle_anim_timer >= 3) {  // Change frame every 3 game frames for slower animation
+        turtle_anim_timer = 0;
+        turtle_anim_frame++;
+        if (turtle_anim_frame >= 4) {
+            turtle_anim_frame = 0;  // Loop back to start
+        }
+        
+        // Update all non-diving turtle sprites for row 0
+        for (int c = 0; c < CLUSTERS_ROW0; ++c) {
+                for (int t = 0; t < TPC_ROW0; ++t) {
+                    int idx = c * TPC_ROW0 + t;
+                    turtle_row0[idx].idx = get_turtle_sprite(22, 0);  // Pass 0 for is_diving
+                }
+        }
+        
+        // Update all non-diving turtle sprites for row 1
+        for (int c = 0; c < CLUSTERS_ROW1; ++c) {
+                for (int t = 0; t < TPC_ROW1; ++t) {
+                    int idx = c * TPC_ROW1 + t;
+                    turtle_row1[idx].idx = get_turtle_sprite(23, 0);  // Pass 0 for is_diving
+                }
         }
     }
 }
@@ -265,10 +397,17 @@ static void bar_tick(void) {
         bar_frame = 0;
         --bar_cols;
     }
+    
+    // Prevent overflow
+    if (bar_frame > 10000) bar_frame = 0;
+    if (bar_cols < 0) bar_cols = 0;
 }
 
 static void update_fly_system() {
     fly_timer++;
+    
+    // Prevent timer overflow
+    if (fly_timer > 10000) fly_timer = 0;
 
     if (fly_timer >= 30) {          // 30 frames = your desired timing
         fly_visible = !fly_visible; // Toggle visibility
@@ -301,6 +440,10 @@ static void update_fly_system() {
 
     // Update captured frog animation (2 seconds = 120 frames)
     captured_frog_timer++;
+    
+    // Prevent timer overflow
+    if (captured_frog_timer > 10000) captured_frog_timer = 0;
+    
     if (captured_frog_timer >= 120) {
         captured_frog_timer = 0;
     }
@@ -309,6 +452,13 @@ static void update_fly_system() {
 static void update_animation() {
     if (is_animating) {
         anim_timer++;
+        
+        // Prevent overflow
+        if (anim_timer > 1000) {
+            is_animating = 0;
+            anim_timer = 0;
+        }
+        
         if (anim_timer >= ANIM_FRAMES) {
             is_animating = 0;
             anim_timer = 0;
@@ -418,6 +568,9 @@ static void reset_frog(struct Obj *f) {
     fly_timer = 0;
     fly_visible = 1;
     captured_frog_timer = 0;
+    turtle_anim_timer = 0;
+    turtle_anim_frame = 0;
+    frog_highest_y = f->y; // Reset highest y position tracker
 }
 
 static void init_log_arrays(void) {
@@ -433,18 +586,22 @@ static void init_turtle_clusters(void) {
     for (int c = 0; c < CLUSTERS_ROW0; ++c)
         for (int t = 0; t < TPC_ROW0; ++t) {
             int i = c * TPC_ROW0 + t;
-            int spr = (c == diving_cluster_row[0]) ? 25 : 22;
+            int is_diving = (c == diving_cluster_row[0]);
+            int spr = get_turtle_sprite(22, is_diving);
             turtle_row0[i] = (struct Obj){c * 60 + t * TILE_W, 64, 0, 0, spr, -2};
         }
     for (int c = 0; c < CLUSTERS_ROW1; ++c)
         for (int t = 0; t < TPC_ROW1; ++t) {
             int i = c * TPC_ROW1 + t;
-            int spr = (c == diving_cluster_row[1]) ? 25 : 23;
+            int is_diving = (c == diving_cluster_row[1]);
+            int spr = get_turtle_sprite(23, is_diving);
             turtle_row1[i] = (struct Obj){c * 64 + t * TILE_W, 112, 0, 0, spr, -2};
         }
 
     dive_timer_row[0] = dive_timer_row[1] = 0;
     submerged_row[0] = submerged_row[1] = 0;
+    turtle_anim_timer = 0;
+    turtle_anim_frame = 0;
 }
 
 static void reset_world(void) {
@@ -467,8 +624,6 @@ static void reset_world(void) {
     reset_frog(&frog);
     init_log_arrays();
     init_turtle_clusters();
-    for (int i = 0; i < 5; ++i)
-        targets[i].filled = 0;
 }
 
 static void start_new_game(void) {
@@ -476,19 +631,13 @@ static void start_new_game(void) {
     score = 0;
     game_over = 0;
     srand(0);
+    
+    // Reset lily pads only when starting a new game
+    for (int i = 0; i < 5; ++i)
+        targets[i].filled = 0;
+        
     reset_world();
 }
-
-//static void fill_water_background() {
-//    for (int y = RIVER_TOP; y <= RIVER_BOTTOM; y += 2) { // Every other row
-//        for (int x = 0; x < FB_W; x += 2) {              // Every other column
-//            draw_pixel_fast(x, y, 1);
-//            draw_pixel_fast(x + 1, y, 1);
-//            draw_pixel_fast(x, y + 1, 1);
-//            draw_pixel_fast(x + 1, y + 1, 1);
-//        }
-//    }
-//}
 
 static void draw_complete_frame(void) {
     // Draw background tiles (with the skip check restored for performance)
@@ -510,9 +659,6 @@ static void draw_complete_frame(void) {
                 }
             }
         }
-
-    // Fill water background before drawing water sprites
-//    fill_water_background();
 
     // Draw lily pads (these are on water)
     for (int i = 0; i < 5; ++i) {
@@ -570,10 +716,13 @@ static void draw_complete_frame(void) {
     // Draw frog
     draw_frog();
 
-    // Draw lives and score
+    // Draw lives and score using sprite #2 instead of life.h
     for (int i = 0; i < lives; ++i)
-        draw_sprite_8x8(lifes[0], 8 + i * 8, 242);
-    draw_sprite_fast(27, 8, 8);
+        draw_sprite_fast(2, 8 + i * 16, 242);
+    
+    // Draw score label and number
+    draw_sprite_fast(27, 8, 8);  // Score label sprite
+    draw_number(score, 60, 8);   // Score value
 }
 
 int main(void) {
@@ -589,16 +738,16 @@ int main(void) {
 
         update_animation();
         update_fly_system();
+        update_turtle_animation();
 
         if (game_over) {
             draw_complete_frame();
-            draw_sprite_fast(49, 40, 100);  // F
-            draw_sprite_fast(50, 60, 100);  // R
-            draw_sprite_fast(51, 80, 100);  // O
-            draw_sprite_fast(52, 100, 100); // G
-            draw_sprite_fast(52, 120, 100); // G
-            draw_sprite_fast(53, 140, 100); // E
-            draw_sprite_fast(50, 160, 100); // R
+            
+            // Enhanced game over screen with RED text
+            draw_text_colored("GAME OVER", 64, 100, COLOR_RED);
+            draw_text_colored("FINAL SCORE", 48, 120, COLOR_RED);
+            draw_number_colored(score, 96, 140, COLOR_RED);
+            draw_text_colored("PRESS 5 TO RESTART", 32, 180, COLOR_RED);
 
             XGpio_DiscreteWrite(&gpio_done, GPIO_CH, 1);
             wait_vsync();
@@ -701,6 +850,10 @@ int main(void) {
 
         // Turtle dive FSM
         ++dive_timer_row[0];
+        
+        // Prevent timer overflow
+        if (dive_timer_row[0] > 10000) dive_timer_row[0] = 0;
+        
         if (dive_timer_row[0] == DIVE_STAGES) {
             submerged_row[0] = 1;
             int c = diving_cluster_row[0];
@@ -708,15 +861,18 @@ int main(void) {
                 turtle_row0[c * TPC_ROW0 + t].idx = 26;
         } else if (dive_timer_row[0] == DIVE_STAGES + SURFACE_TIME) {
             int c = diving_cluster_row[0];
-            for (int t = 0; t < TPC_ROW0; ++t)
-                turtle_row0[c * TPC_ROW0 + t].idx = 22;
             submerged_row[0] = 0;
+            // Reset to animated sprites when surfacing - FIX: pass 0 for is_diving
             for (int t = 0; t < TPC_ROW0; ++t)
-                turtle_row0[c * TPC_ROW0 + t].idx = 25;
+                turtle_row0[c * TPC_ROW0 + t].idx = 23;  // Changed from 1 to 0
             dive_timer_row[0] = 0;
         }
 
         ++dive_timer_row[1];
+        
+        // Prevent timer overflow
+        if (dive_timer_row[1] > 10000) dive_timer_row[1] = 0;
+        
         if (dive_timer_row[1] == DIVE_STAGES) {
             submerged_row[1] = 1;
             int c = diving_cluster_row[1];
@@ -724,11 +880,10 @@ int main(void) {
                 turtle_row1[c * TPC_ROW1 + t].idx = 26;
         } else if (dive_timer_row[1] == DIVE_STAGES + SURFACE_TIME) {
             int c = diving_cluster_row[1];
-            for (int t = 0; t < TPC_ROW1; ++t)
-                turtle_row1[c * TPC_ROW1 + t].idx = 23;
             submerged_row[1] = 0;
+            // Reset to animated sprites when surfacing - FIX: pass 0 for is_diving
             for (int t = 0; t < TPC_ROW1; ++t)
-                turtle_row1[c * TPC_ROW1 + t].idx = 25;
+                turtle_row1[c * TPC_ROW1 + t].idx = 23;  // Changed from 1 to 0
             dive_timer_row[1] = 0;
         }
 
@@ -756,8 +911,13 @@ int main(void) {
                 frog.y -= TILE_H;
                 moved = 1;
                 frog_dir = DIR_UP;
-                if (frog.y < frog.py)
+                // Only award points if reaching a new highest position
+                if (frog.y < frog_highest_y) {
                     score += 10;
+                    frog_highest_y = frog.y;  // Update highest position
+                    // Prevent score overflow
+                    if (score < 0) score = 999999;
+                }
                 break;
             case '5':
                 start_animation(); // Start animation before moving
@@ -801,11 +961,15 @@ int main(void) {
                     // Check if fly is on this lily pad for bonus points
                     if (fly_visible && fly_target == i) {
                         score += 200;
+                        // Prevent score overflow
+                        if (score < 0) score = 999999;
                         fly_visible = 0; // Remove fly
                         fly_target = -1;
                         fly_timer = 0;
                     } else {
                         score += 100;
+                        // Prevent score overflow
+                        if (score < 0) score = 999999;
                     }
 
                     int all = 1;
